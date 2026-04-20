@@ -5,6 +5,7 @@
   "private": true,
   "main": "src/index.ts",
   "scripts": {
+    "build": "tsc",
     "deploy": "wrangler deploy",
     "dev": "wrangler dev",
     "types": "wrangler types"

@@ -4,7 +4,6 @@ WORKDIR /build
 
 # Copy backend additions
 COPY backend-additions ./backend-additions
-COPY tsconfig.json ./
 
 WORKDIR /build/backend-additions
 RUN npm install && npm run build
