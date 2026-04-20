@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
   publish-npm:
@@ -46,27 +44,6 @@ jobs:
         run: |
           npm ci
           npm run build
-
-  deploy-pages:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-      
-      - name: Upload dashboard artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'dashboard/'
-      
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v2
 
   deploy-flyio:
     needs: build-worker
