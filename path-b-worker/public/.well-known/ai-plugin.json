@@ -1,0 +1,12 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "ambient_access_layer",
+  "name_for_human": "Ambient Access Layer",
+  "description_for_model": "Submit long-running tasks to specialized AI agents (Kiro, Codex, Claude, Gemini) with intelligent routing, approval gates for production changes, and persistent state across sessions via Soul Capsule event log.",
+  "description_for_human": "Route AI work to the right specialist agent and track it in the background.",
+  "auth": {"type": "bearer"},
+  "api": {"type": "openapi", "url": "https://optimization-inversion.genesisconductor.io/openapi.yaml"},
+  "logo_url": "https://genesisconductor.io/logo.png",
+  "contact_email": "igor@kovachenterprises.com",
+  "legal_info_url": "https://genesisconductor.io/legal"
+}

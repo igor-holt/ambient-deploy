@@ -1,0 +1,9 @@
+{
+  "schema_version": "2024-11-05",
+  "name": "genesis-conductor-ambient",
+  "description": "Genesis Conductor Ambient Access Layer — task routing, status, approvals across Kiro/Codex/Claude/Gemini",
+  "version": "1.0.0",
+  "transport": {"type": "http", "url": "https://ambient-mcp-server.iholt.workers.dev/mcp"},
+  "capabilities": {"tools": true, "resources": false, "prompts": false},
+  "contact": {"name": "Kovach Enterprises", "email": "igor@kovachenterprises.com"}
+}

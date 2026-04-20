@@ -1,22 +1,24 @@
-name = "ambient-mcp-worker"
+name = "ambient-access-layer"
 main = "src/index.ts"
-compatibility_date = "2026-04-19"
-compatibility_flags = ["nodejs_compat"]
-account_id = "04c59c95ce8d0a0be98099b7f7e39d18"
+compatibility_date = "2024-01-01"
 
-[[routes]]
-pattern = "ambient.genesisconductor.io/mcp*"
-zone_name = "genesisconductor.io"
+# Custom domains
+routes = [
+  { pattern = "optimization-inversion.genesisconductor.io", custom_domain = true }
+]
 
-# Secrets (set via `wrangler secret put <NAME>`):
-#   AMBIENT_API_KEY          — upstream bearer token for optimization-inversion.genesisconductor.io
-#   MCP_SHARED_SECRET        — optional: validate incoming Authorization header (per-caller)
-#
-# Vars:
-[vars]
-AMBIENT_BASE_URL = "https://optimization-inversion.genesisconductor.io"
-SERVER_NAME = "ambient"
-SERVER_VERSION = "1.0.0"
+# KV Namespaces
+[[kv_namespaces]]
+binding = "API_KEYS"
+id = "4c2c5ef0988742cc8fb98102681d9986"
 
-[observability]
-enabled = true
+# D1 Database
+[[d1_databases]]
+binding = "TASK_DB"
+database_name = "ambient-db"
+database_id = "56fc54e4-a04c-4f6d-b0af-048bdfa777d8"
+
+# Static assets
+[assets]
+directory = "./public"
+binding = "STATIC_ASSETS"

@@ -1,0 +1,5 @@
+Contact: mailto:igor@kovachenterprises.com
+Expires: 2027-04-20T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://optimization-inversion.genesisconductor.io/.well-known/security.txt
+Policy: https://github.com/Genesis-Conductor-Engine/ambient-access-layer/security/policy

@@ -1,0 +1,237 @@
+openapi: 3.1.0
+info:
+  title: Ambient Access Layer
+  version: 1.0.0
+  description: |
+    Task routing and approval API for ambient AI agents.
+    
+    Route work to specialist agents (Kiro, Codex, Claude, Gemini) with intelligent 
+    routing, approval gates for production changes, and persistent state via Soul Capsule.
+  contact:
+    name: Kovach Enterprises
+    email: igor@kovachenterprises.com
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://optimization-inversion.genesisconductor.io
+    description: Production
+
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/tasks:
+    post:
+      operationId: createTask
+      summary: Submit a new task
+      description: Submit a task for routing to a specialist agent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskEnvelope'
+      responses:
+        '202':
+          description: Task accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Invalid API key
+
+  /v1/tasks/{id}:
+    get:
+      operationId: getTask
+      summary: Get task status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+
+  /v1/tasks/{id}/approve:
+    post:
+      operationId: approveTask
+      summary: Approve a pending task
+      description: Approve a task that requires manual approval before execution
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+        '404':
+          description: Task not found
+        '409':
+          description: Task not in pending approval state
+
+  /v1/capsule/{user_id}:
+    get:
+      operationId: getCapsule
+      summary: Get user's Soul Capsule
+      description: Retrieve the event log for a user's Soul Capsule
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: since
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Only return events after this timestamp
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 100
+            maximum: 1000
+      responses:
+        '200':
+          description: Capsule events
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CapsuleResponse'
+
+  /health:
+    get:
+      operationId: healthCheck
+      summary: Health check
+      security: []
+      responses:
+        '200':
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  timestamp:
+                    type: string
+                    format: date-time
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    TaskEnvelope:
+      type: object
+      required:
+        - type
+        - payload
+      properties:
+        type:
+          type: string
+          enum:
+            - code_review
+            - deployment
+            - data_analysis
+            - research
+            - mev_protection
+            - ens_bulk_renewal
+            - ens_expiry_sniper
+            - ens_dutch_arb
+            - ens_subdomain_saas
+          description: Task type determines routing to specialist agent
+        payload:
+          type: object
+          description: Task-specific payload
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+          default: medium
+        requires_approval:
+          type: boolean
+          default: false
+          description: If true, task will wait for manual approval before execution
+        metadata:
+          type: object
+          additionalProperties: true
+          description: Optional metadata for tracking
+
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        status:
+          type: string
+          enum: [accepted, pending, pending_approval, in_progress, completed, failed, cancelled]
+        agent:
+          type: string
+          description: Routed agent name
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        result:
+          type: object
+          description: Task result when completed
+
+    CapsuleResponse:
+      type: object
+      properties:
+        user_id:
+          type: string
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/CapsuleEvent'
+        next_cursor:
+          type: string
+          description: Cursor for pagination
+
+    CapsuleEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        data:
+          type: object

@@ -1,0 +1,10 @@
+# AI Usage Policy — genesisconductor.io
+
+User-agent: *
+Allow: /docs/
+Allow: /openapi.yaml
+Allow: /llms.txt
+Disallow: /v1/
+
+Contact: igor@kovachenterprises.com
+Training-allowed: docs-only

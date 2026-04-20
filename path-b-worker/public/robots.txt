@@ -1,0 +1,29 @@
+User-agent: *
+Allow: /docs/
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /openapi.yaml
+Disallow: /v1/
+Disallow: /health
+
+# LLM crawlers — explicitly allowed on docs
+User-agent: GPTBot
+Allow: /docs/
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: ClaudeBot
+Allow: /docs/
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: PerplexityBot
+Allow: /docs/
+Allow: /llms.txt
+Allow: /llms-full.txt
+
+User-agent: Google-Extended
+Allow: /docs/
+Allow: /llms.txt
+
+Sitemap: https://optimization-inversion.genesisconductor.io/sitemap.xml

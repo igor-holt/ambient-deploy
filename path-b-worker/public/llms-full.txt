@@ -1,0 +1,80 @@
+# Genesis Conductor — Full Documentation Bundle
+
+Generated: 2025-04-10T14:32:45Z
+
+## README
+
+# Ambient Access Layer
+
+Persistent, specialized, asynchronous AI agents accessible from the tools developers already use.
+
+### Features
+- **Task Routing**: Intelligent routing to specialist agents (Kiro, Codex, Claude, Gemini)
+- **Soul Capsule**: Persistent event log across sessions
+- **Approval Gates**: Configurable policies for production changes
+- **MCP Integration**: 11 tools via JSON-RPC 2.0
+
+### Endpoints
+- POST /v1/tasks - Submit a new task
+- GET /v1/tasks/:id - Get task status
+- POST /v1/tasks/:id/approve - Approve a pending task
+- GET /v1/capsule/:user_id - Get user's Soul Capsule
+
+### Authentication
+Bearer token required for all /v1/* endpoints.
+
+## Architecture
+
+The Ambient Access Layer runs on Cloudflare Workers with:
+- D1 for task persistence
+- KV for API keys and routing
+- Queues for async processing
+- R2 for artifact storage
+
+## OpenAPI Specification
+
+```yaml
+openapi: 3.1.0
+info:
+  title: Ambient Access Layer
+  version: 1.0.0
+  description: Task routing and approval API for ambient AI agents
+servers:
+  - url: https://optimization-inversion.genesisconductor.io
+paths:
+  /v1/tasks:
+    post:
+      summary: Submit a new task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskEnvelope'
+      responses:
+        '202':
+          description: Task accepted
+  /v1/tasks/{id}:
+    get:
+      summary: Get task status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+components:
+  schemas:
+    TaskEnvelope:
+      type: object
+      required: [type, payload]
+      properties:
+        type:
+          type: string
+          enum: [code_review, deployment, data_analysis, research]
+        payload:
+          type: object
+        priority:
+          type: string
+          enum: [low, medium, high, critical]
+```

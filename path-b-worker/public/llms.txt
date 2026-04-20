@@ -1,0 +1,21 @@
+# Genesis Conductor — Ambient Agent Access Layer
+
+> Persistent, specialized, asynchronous AI agents accessible from the tools
+> developers already use (ChatGPT, Claude, Cursor, Gemini CLI, Codex CLI).
+> Soul Capsule memory + approval-gated execution + routed to specialist agents.
+
+## Core surfaces
+- [Ambient Access Layer API](https://optimization-inversion.genesisconductor.io/openapi.yaml): OpenAPI 3.1 spec, all /v1/* endpoints
+- [MCP Server](https://ambient-mcp-server.iholt.workers.dev/mcp): 11 tools, JSON-RPC 2.0
+- [gc-ambient-gateway](https://gc-ambient-gateway.iholt.workers.dev): Public gateway, /provision + /health
+- [self-evolving-retrainer](https://github.com/Genesis-Conductor-Engine/self-evolving-retrainer): Shadow-gated prompt optimization
+
+## Concepts
+- [Task Envelope schema](https://optimization-inversion.genesisconductor.io/docs/task-envelope.md)
+- [Soul Capsule event log](https://optimization-inversion.genesisconductor.io/docs/capsule.md)
+- [Agent routing table](https://optimization-inversion.genesisconductor.io/docs/routing.md)
+- [Approval policy tiers](https://optimization-inversion.genesisconductor.io/docs/policy.md)
+
+## Optional
+- [Architecture deep-dive](https://github.com/Genesis-Conductor-Engine/ambient-access-layer/blob/main/docs/ARCHITECTURE.md)
+- [Ralph micro-slices](https://github.com/Genesis-Conductor-Engine/self-evolving-retrainer/blob/main/docs/ARCHITECTURE.md#ralph-micro-optimization-slices)
