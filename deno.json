@@ -1,0 +1,14 @@
+{
+  "tasks": {
+    "dev": "deno run --allow-net --allow-env src/index.ts",
+    "deploy": "deployctl deploy --project=ambient-mcp src/index.ts"
+  },
+  "imports": {
+    "@mcp/sdk": "npm:@modelcontextprotocol/sdk@^1.0.0",
+    "zod": "npm:zod@^3.23.0"
+  },
+  "compilerOptions": {
+    "lib": ["deno.window", "deno.unstable"],
+    "target": "ES2022"
+  }
+}

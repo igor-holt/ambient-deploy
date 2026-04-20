@@ -1,0 +1,44 @@
+app = "ambient-backend-api"
+primary_region = "iad"
+
+[build]
+dockerfile = "Dockerfile"
+
+[http_service]
+internal_port = 3000
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 1
+
+[[vm]]
+memory = "256mb"
+cpu_kind = "shared"
+cpus = 1
+
+[env]
+AMBIENT_ENVIRONMENT = "production"
+LOG_LEVEL = "info"
+
+[[services]]
+protocol = "tcp"
+internal_port = 3000
+processes = ["app"]
+
+  [[services.ports]]
+  number = 80
+  handlers = ["http"]
+  force_https = true
+
+  [[services.ports]]
+  number = 443
+  handlers = ["tls", "http"]
+
+[checks.http_check]
+protocol = "http"
+port = 3000
+method = "GET"
+path = "/health"
+interval = 30000
+timeout = 5000
+grace_period = 30000
