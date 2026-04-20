@@ -178,7 +178,7 @@ const tools: Tool[] = [
     name: "ambient_submit_task",
     description:
       "Submit an asynchronous task to the Genesis Conductor agent graph. Routes to kiro/codex/claude/gemini/copilot based on request_type. Returns task_id and job_id for status polling.",
-    inputSchema: zodToJsonSchema(SubmitTaskInput),
+    inputSchema: zodToJsonSchema(SubmitTaskInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "Submit Ambient Task",
       readOnlyHint: false,
@@ -191,7 +191,7 @@ const tools: Tool[] = [
     name: "ambient_get_job_status",
     description:
       "Get current status of a job by job_id. Returns agent, status (pending|running|blocked|complete|failed), stage, progress, and approval_id if blocked.",
-    inputSchema: zodToJsonSchema(GetJobStatusInput),
+    inputSchema: zodToJsonSchema(GetJobStatusInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "Get Job Status",
       readOnlyHint: true,
@@ -204,7 +204,7 @@ const tools: Tool[] = [
     name: "ambient_get_workspace_state",
     description:
       "Fast-read state projection for a workspace: active_jobs count, blocked_jobs count, and list of open approvals. Backed by KV for sub-50ms reads.",
-    inputSchema: zodToJsonSchema(GetWorkspaceStateInput),
+    inputSchema: zodToJsonSchema(GetWorkspaceStateInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "Get Workspace State",
       readOnlyHint: true,
@@ -217,7 +217,7 @@ const tools: Tool[] = [
     name: "ambient_list_jobs",
     description:
       "List jobs across the workspace with optional status filter and pagination. Supports limit (max 100) and offset.",
-    inputSchema: zodToJsonSchema(ListJobsInput),
+    inputSchema: zodToJsonSchema(ListJobsInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "List Jobs",
       readOnlyHint: true,
@@ -230,7 +230,7 @@ const tools: Tool[] = [
     name: "ambient_approve_task",
     description:
       "Approve a blocked task by approval_id. Transitions the underlying job from blocked → running. Requires prod_sensitive or requires_approval=true.",
-    inputSchema: zodToJsonSchema(ApprovalActionInput),
+    inputSchema: zodToJsonSchema(ApprovalActionInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "Approve Task",
       readOnlyHint: false,
@@ -243,7 +243,7 @@ const tools: Tool[] = [
     name: "ambient_reject_task",
     description:
       "Reject a blocked task by approval_id. Cancels the underlying job. Irreversible — creates a capsule_events record for audit.",
-    inputSchema: zodToJsonSchema(ApprovalActionInput),
+    inputSchema: zodToJsonSchema(ApprovalActionInput) as unknown as Record<string, unknown> & { type: "object" },
     annotations: {
       title: "Reject Task",
       readOnlyHint: false,
@@ -375,7 +375,12 @@ function toolError(message: string) {
  * Minimal Zod → JSON Schema converter. Sufficient for the subset used above.
  * Avoids pulling zod-to-json-schema as a dependency.
  */
-function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
+function zodToJsonSchema(schema: z.ZodType): {
+  type: "object";
+  properties: Record<string, unknown>;
+  required?: string[];
+  additionalProperties: false;
+} {
   const any = schema as any;
   if (any._def.typeName === "ZodObject") {
     const shape = any._def.shape();
@@ -395,7 +400,12 @@ function zodToJsonSchema(schema: z.ZodType): Record<string, unknown> {
       additionalProperties: false,
     };
   }
-  return zodFieldToJsonSchema(schema);
+  // Ensure we always return the proper type shape
+  return {
+    type: "object",
+    properties: {},
+    additionalProperties: false,
+  };
 }
 
 function zodFieldToJsonSchema(field: any): Record<string, unknown> {
