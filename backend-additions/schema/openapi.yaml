@@ -1,0 +1,200 @@
+openapi: 3.1.0
+info:
+  title: Ambient Agent Access Layer
+  description: |
+    Asynchronous agent-graph invocation API. Submit, track, approve, and reject
+    background tasks executed by kiro, codex, claude, gemini, or copilot.
+  version: 1.0.0
+  contact:
+    name: Kovach Enterprises
+    url: https://genesisconductor.io
+servers:
+  - url: https://optimization-inversion.genesisconductor.io
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+  schemas:
+    TaskSubmission:
+      type: object
+      required: [request_type, title, description, source_surface]
+      properties:
+        request_type:
+          type: string
+          enum:
+            - implement_feature_from_spec
+            - implement_feature
+            - security_fix
+            - deep_architecture_review
+            - gcp_ops
+            - inline_suggestion
+            - deploy
+        title: { type: string, maxLength: 80 }
+        description: { type: string }
+        source_surface:
+          type: string
+          enum: [chatgpt, claude, cli, webhook, http-mcp]
+        priority:
+          type: string
+          enum: [critical, high, normal, low]
+          default: normal
+        policy_tier:
+          type: string
+          enum: [standard, prod_sensitive]
+          default: standard
+        requires_approval: { type: boolean, default: false }
+        context_refs:
+          type: array
+          items: { type: string }
+        candidate_agents:
+          type: array
+          items:
+            type: string
+            enum: [kiro, codex, claude, gemini, copilot]
+        requested_by: { type: string }
+    TaskResponse:
+      type: object
+      properties:
+        task_id: { type: string }
+        job_id: { type: string }
+        workspace_id: { type: string }
+        status: { type: string, enum: [pending, running, blocked, complete, failed, cancelled] }
+    Job:
+      type: object
+      properties:
+        job_id: { type: string }
+        task_id: { type: string }
+        agent: { type: string }
+        status: { type: string }
+        stage: { type: string }
+        progress: { type: integer, minimum: 0, maximum: 100 }
+        approval_id: { type: string, nullable: true }
+        updated_at: { type: string, format: date-time }
+    WorkspaceState:
+      type: object
+      properties:
+        workspace_id: { type: string }
+        active_jobs: { type: integer }
+        blocked_jobs: { type: integer }
+        open_approvals:
+          type: array
+          items:
+            type: object
+            properties:
+              approval_id: { type: string }
+              task_id: { type: string }
+              requested_at: { type: string, format: date-time }
+        last_updated: { type: string, format: date-time }
+    ApprovalResult:
+      type: object
+      properties:
+        status: { type: string }
+        approval_id: { type: string }
+        new_state: { type: string, enum: [approved, rejected] }
+    Error:
+      type: object
+      properties:
+        error: { type: string }
+security:
+  - ApiKeyAuth: []
+paths:
+  /v1/tasks:
+    post:
+      operationId: submitTask
+      summary: Submit a new task to the agent graph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TaskSubmission" }
+      responses:
+        "201":
+          description: Task created and job enqueued.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TaskResponse" }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+        "401": { description: Unauthorized }
+
+  /v1/jobs:
+    get:
+      operationId: listJobs
+      summary: List jobs with optional status filter.
+      parameters:
+        - { name: workspace_id, in: query, schema: { type: string } }
+        - { name: status, in: query, schema: { type: string, enum: [pending, running, blocked, complete, failed, cancelled] } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+        - { name: offset, in: query, schema: { type: integer, minimum: 0, default: 0 } }
+      responses:
+        "200":
+          description: Paginated list of jobs.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  count: { type: integer }
+                  offset: { type: integer }
+                  has_more: { type: boolean }
+                  next_offset: { type: integer }
+                  items:
+                    type: array
+                    items: { $ref: "#/components/schemas/Job" }
+
+  /v1/jobs/{job_id}:
+    get:
+      operationId: getJobStatus
+      summary: Get a single job by id.
+      parameters:
+        - { name: job_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Job record.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Job" }
+        "404": { description: Not found }
+
+  /v1/state/{workspace_id}:
+    get:
+      operationId: getWorkspaceState
+      summary: KV-backed state projection for a workspace.
+      parameters:
+        - { name: workspace_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Current state projection.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/WorkspaceState" }
+        "403": { description: Cross-tenant access blocked }
+
+  /v1/approvals/{approval_id}/approve:
+    post:
+      operationId: approveTask
+      summary: Approve a pending task.
+      parameters:
+        - { name: approval_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Approval resolved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalResult" }
+        "400": { description: Already resolved }
+        "404": { description: Not found or forbidden }
+
+  /v1/approvals/{approval_id}/reject:
+    post:
+      operationId: rejectTask
+      summary: Reject a pending task (cancels the job).
+      parameters:
+        - { name: approval_id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Rejection resolved.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ApprovalResult" }

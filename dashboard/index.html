@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ambient · Operator Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@300;400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0A0B0D;
+    --panel: #111317;
+    --panel-raised: #15181D;
+    --hairline: #1C1F24;
+    --hairline-bright: #2A2E35;
+    --ink: #E8E6E0;
+    --ink-mute: #8B8680;
+    --ink-faint: #5A5853;
+    --accent: #D4A574;         /* amber — primary */
+    --accent-glow: #D4A57430;
+    --hot: #E25C4A;            /* critical / failed */
+    --hot-glow: #E25C4A30;
+    --cool: #8FB569;           /* running / success */
+    --cool-glow: #8FB56930;
+    --blue: #6B8FA3;           /* pending */
+    --violet: #9B87C8;         /* blocked */
+    --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+    --serif: "Instrument Serif", Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  ::selection { background: var(--accent); color: var(--bg); }
+
+  /* ── Grain ─────────────────────────────────────────────────── */
+  body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.035;
+    z-index: 100;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ── Top bar ──────────────────────────────────────────────── */
+  .topbar {
+    display: grid;
+    grid-template-columns: 340px 1fr 340px;
+    align-items: center;
+    border-bottom: 1px solid var(--hairline);
+    padding: 18px 24px;
+    gap: 24px;
+    background: var(--bg);
+    position: relative;
+  }
+  .brand {
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  .brand-mark {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 30px;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .brand-mark em { color: var(--accent); font-style: italic; }
+  .brand-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+
+  /* ── Seismic waveform ──────────────────────────────────────── */
+  .wave {
+    height: 38px;
+    position: relative;
+    overflow: hidden;
+  }
+  .wave svg { width: 100%; height: 100%; display: block; }
+  .wave path {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 1.2;
+    opacity: 0.7;
+  }
+  .wave path.soft { stroke: var(--accent); opacity: 0.22; stroke-width: 0.8; }
+  .wave::after {
+    content: "";
+    position: absolute; right: 0; top: 0; bottom: 0;
+    width: 80px;
+    background: linear-gradient(to right, transparent, var(--bg) 70%);
+    pointer-events: none;
+  }
+
+  /* ── Health cluster ────────────────────────────────────────── */
+  .health {
+    display: flex; justify-content: flex-end; gap: 20px; align-items: center;
+    font-size: 11px;
+  }
+  .health-item { display: flex; align-items: center; gap: 6px; color: var(--ink-mute); }
+  .health-item b { color: var(--ink); font-weight: 500; }
+  .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cool);
+    box-shadow: 0 0 8px var(--cool);
+    animation: pulse 2.1s ease-in-out infinite;
+  }
+  .dot.warn { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .dot.hot { background: var(--hot); box-shadow: 0 0 8px var(--hot); }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  /* ── Layout ────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: 340px 1fr 340px;
+    gap: 0;
+    height: calc(100vh - 75px);
+  }
+  .rail-left, .rail-right {
+    border-right: 1px solid var(--hairline);
+    overflow-y: auto;
+    padding: 20px 24px;
+  }
+  .rail-right { border-right: none; border-left: 1px solid var(--hairline); }
+  .center {
+    overflow-y: auto;
+    padding: 20px 28px;
+  }
+
+  /* ── Section labels ────────────────────────────────────────── */
+  .label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--ink-faint);
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--hairline);
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .label span:last-child {
+    color: var(--accent);
+    font-weight: 400;
+    letter-spacing: 0.12em;
+  }
+
+  /* ── Metric block (left rail) ──────────────────────────────── */
+  .metric {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .metric:last-child { border-bottom: none; }
+  .metric-k {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--ink-mute);
+    margin-bottom: 6px;
+  }
+  .metric-v {
+    font-family: var(--serif);
+    font-size: 44px;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+  .metric-v.amber { color: var(--accent); }
+  .metric-v.hot { color: var(--hot); }
+  .metric-sub {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+  }
+
+  /* ── Jobs table ────────────────────────────────────────────── */
+  .jobs {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11.5px;
+  }
+  .jobs th {
+    text-align: left;
+    padding: 12px 12px 12px 0;
+    font-weight: 500;
+    color: var(--ink-faint);
+    border-bottom: 1px solid var(--hairline-bright);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+  }
+  .jobs td {
+    padding: 14px 12px 14px 0;
+    border-bottom: 1px solid var(--hairline);
+    vertical-align: top;
+  }
+  .jobs tr { transition: background-color 0.15s ease; }
+  .jobs tbody tr:hover { background: var(--panel); }
+  .jobs td.mono { color: var(--ink-mute); font-size: 11px; }
+  .jobs td.title {
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    font-style: italic;
+    letter-spacing: -0.005em;
+  }
+  .jobs td.title .desc {
+    display: block;
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: 11px;
+    color: var(--ink-faint);
+    margin-top: 4px;
+    max-width: 520px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── Status pills ─────────────────────────────────────────── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    font-size: 10px;
+    font-family: var(--mono);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border: 1px solid var(--hairline-bright);
+    border-radius: 2px;
+    background: var(--panel);
+    color: var(--ink-mute);
+  }
+  .pill::before {
+    content: "";
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .pill.running   { color: var(--cool); border-color: var(--cool-glow); box-shadow: inset 0 0 0 1px var(--cool-glow); }
+  .pill.pending   { color: var(--blue); }
+  .pill.blocked   { color: var(--violet); border-color: var(--violet); }
+  .pill.complete  { color: var(--ink); border-color: var(--hairline-bright); }
+  .pill.failed    { color: var(--hot); border-color: var(--hot-glow); }
+  .pill.cancelled { color: var(--ink-faint); }
+
+  .pill.running::before { animation: pulse 1.6s ease-in-out infinite; }
+
+  /* ── Agent chip ───────────────────────────────────────────── */
+  .agent {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink);
+    padding: 2px 7px;
+    border: 1px solid var(--hairline-bright);
+    border-radius: 2px;
+    background: var(--panel-raised);
+  }
+
+  /* ── Progress bar ─────────────────────────────────────────── */
+  .prog {
+    width: 80px;
+    height: 3px;
+    background: var(--hairline);
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .prog > span {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent-glow);
+    transition: width 0.4s ease;
+  }
+  .prog-text {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--ink-faint);
+    margin-top: 3px;
+  }
+
+  /* ── Approval cards ───────────────────────────────────────── */
+  .approval {
+    border: 1px solid var(--hairline-bright);
+    padding: 14px;
+    margin-bottom: 12px;
+    background: var(--panel);
+    position: relative;
+  }
+  .approval::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 2px;
+    background: var(--violet);
+  }
+  .approval-meta {
+    font-size: 10px;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 6px;
+  }
+  .approval-title {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--ink);
+    margin-bottom: 10px;
+    letter-spacing: -0.005em;
+  }
+  .approval-actions { display: flex; gap: 8px; }
+  .btn {
+    flex: 1;
+    padding: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--hairline-bright);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .btn:hover { background: var(--panel-raised); }
+  .btn.approve { color: var(--cool); border-color: var(--cool-glow); }
+  .btn.approve:hover { background: var(--cool-glow); box-shadow: inset 0 0 0 1px var(--cool); }
+  .btn.reject { color: var(--hot); border-color: var(--hot-glow); }
+  .btn.reject:hover { background: var(--hot-glow); box-shadow: inset 0 0 0 1px var(--hot); }
+
+  /* ── Submit form ──────────────────────────────────────────── */
+  .submit-form {
+    margin-bottom: 22px;
+    padding: 16px;
+    border: 1px solid var(--hairline-bright);
+    background: var(--panel);
+  }
+  .submit-form input, .submit-form select, .submit-form textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--hairline-bright);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    outline: none;
+    transition: border-color 0.15s ease;
+  }
+  .submit-form input:focus, .submit-form select:focus, .submit-form textarea:focus {
+    border-color: var(--accent);
+  }
+  .submit-form textarea { min-height: 60px; resize: vertical; font-family: var(--mono); }
+  .submit-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .submit-form button {
+    width: 100%;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s ease;
+  }
+  .submit-form button:hover { background: #E8B580; }
+
+  /* ── Center head ──────────────────────────────────────────── */
+  .center-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .center-head h1 {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 32px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    font-weight: 400;
+  }
+  .filters {
+    display: flex; gap: 4px;
+    font-size: 10px;
+  }
+  .filter {
+    padding: 5px 10px;
+    color: var(--ink-mute);
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    transition: all 0.15s ease;
+  }
+  .filter:hover { color: var(--ink); }
+  .filter.active {
+    color: var(--accent);
+    border-color: var(--hairline-bright);
+    background: var(--panel);
+  }
+
+  /* ── Empty states ─────────────────────────────────────────── */
+  .empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: var(--ink-faint);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+  }
+
+  /* ── Toast ────────────────────────────────────────────────── */
+  .toast {
+    position: fixed;
+    bottom: 24px; right: 24px;
+    padding: 12px 16px;
+    background: var(--panel-raised);
+    border: 1px solid var(--hairline-bright);
+    border-left: 2px solid var(--accent);
+    font-size: 11px;
+    color: var(--ink);
+    z-index: 200;
+    max-width: 340px;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  }
+  .toast.show { transform: translateX(0); }
+  .toast.hot { border-left-color: var(--hot); }
+  .toast.cool { border-left-color: var(--cool); }
+
+  /* ── Footer ───────────────────────────────────────────────── */
+  .footer {
+    padding: 14px 24px;
+    border-top: 1px solid var(--hairline);
+    font-size: 10px;
+    color: var(--ink-faint);
+    display: flex; justify-content: space-between;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+  }
+
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr; height: auto; }
+    .rail-left, .rail-right { border: none; border-bottom: 1px solid var(--hairline); }
+    .topbar { grid-template-columns: 1fr; text-align: left; }
+    .wave { display: none; }
+    .health { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark"><em>Ambient</em></div>
+    <div class="brand-tag">Agent Access Layer · v1.0</div>
+  </div>
+  <div class="wave" aria-hidden="true">
+    <svg viewBox="0 0 600 38" preserveAspectRatio="none">
+      <path class="soft" id="wave-soft" d="" />
+      <path id="wave-main" d="" />
+    </svg>
+  </div>
+  <div class="health">
+    <div class="health-item"><span class="dot" id="health-dot"></span> <span id="health-text">CONNECTED</span></div>
+    <div class="health-item"><b id="health-tools">—</b> TOOLS</div>
+    <div class="health-item"><b id="health-latency">—</b> MS</div>
+  </div>
+</header>
+
+<main class="grid">
+
+  <!-- LEFT RAIL : Workspace state -->
+  <aside class="rail-left">
+    <div class="label"><span>Workspace</span><span id="ws-id">—</span></div>
+
+    <div class="metric">
+      <div class="metric-k">Active Jobs</div>
+      <div class="metric-v amber" id="m-active">0</div>
+      <div class="metric-sub" id="m-active-sub">across all agents</div>
+    </div>
+    <div class="metric">
+      <div class="metric-k">Blocked · Awaiting Approval</div>
+      <div class="metric-v" id="m-blocked">0</div>
+      <div class="metric-sub">prod_sensitive gated</div>
+    </div>
+    <div class="metric">
+      <div class="metric-k">Completed · 24h</div>
+      <div class="metric-v" id="m-complete">0</div>
+      <div class="metric-sub" id="m-complete-sub">telemetry window</div>
+    </div>
+    <div class="metric">
+      <div class="metric-k">Failed · 24h</div>
+      <div class="metric-v hot" id="m-failed">0</div>
+      <div class="metric-sub">requires retry review</div>
+    </div>
+
+    <div class="label" style="margin-top: 28px;"><span>Quick Submit</span><span>CLI</span></div>
+    <form class="submit-form" id="submit-form">
+      <input type="text" id="sf-title" placeholder="Task title · imperative" maxlength="80" required />
+      <textarea id="sf-desc" placeholder="Description · verbatim"></textarea>
+      <div class="row">
+        <select id="sf-type">
+          <option value="implement_feature">implement_feature</option>
+          <option value="implement_feature_from_spec">implement_feature_from_spec</option>
+          <option value="security_fix">security_fix</option>
+          <option value="deep_architecture_review">deep_architecture_review</option>
+          <option value="gcp_ops">gcp_ops</option>
+          <option value="inline_suggestion">inline_suggestion</option>
+          <option value="deploy">deploy</option>
+        </select>
+        <select id="sf-priority">
+          <option value="normal">normal</option>
+          <option value="critical">critical</option>
+          <option value="high">high</option>
+          <option value="low">low</option>
+        </select>
+      </div>
+      <button type="submit">Queue Task</button>
+    </form>
+  </aside>
+
+  <!-- CENTER : Jobs table -->
+  <section class="center">
+    <div class="center-head">
+      <h1>Job Dispatch</h1>
+      <div class="filters">
+        <span class="filter active" data-filter="all">ALL</span>
+        <span class="filter" data-filter="running">RUNNING</span>
+        <span class="filter" data-filter="pending">PENDING</span>
+        <span class="filter" data-filter="blocked">BLOCKED</span>
+        <span class="filter" data-filter="complete">COMPLETE</span>
+        <span class="filter" data-filter="failed">FAILED</span>
+      </div>
+    </div>
+
+    <table class="jobs">
+      <thead>
+        <tr>
+          <th style="width: 45%;">Task</th>
+          <th>Agent</th>
+          <th>Status</th>
+          <th>Progress</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody id="jobs-body">
+        <tr><td colspan="5" class="empty">awaiting dispatch telemetry</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- RIGHT RAIL : Approval queue -->
+  <aside class="rail-right">
+    <div class="label"><span>Approval Queue</span><span id="ap-count">0</span></div>
+    <div id="approvals-body">
+      <div class="empty">no pending approvals</div>
+    </div>
+
+    <div class="label" style="margin-top: 28px;"><span>Routing Table</span><span>7</span></div>
+    <div style="font-size: 10.5px; color: var(--ink-mute); line-height: 1.9;">
+      <div><span style="color: var(--accent)">implement_feature</span> → kiro</div>
+      <div><span style="color: var(--accent)">security_fix</span> → codex <span style="color: var(--violet)">⚑</span></div>
+      <div><span style="color: var(--accent)">deep_architecture_review</span> → claude</div>
+      <div><span style="color: var(--accent)">gcp_ops</span> → gemini <span style="color: var(--violet)">⚑</span></div>
+      <div><span style="color: var(--accent)">inline_suggestion</span> → copilot</div>
+      <div><span style="color: var(--accent)">deploy</span> → kiro <span style="color: var(--violet)">⚑</span></div>
+      <div style="margin-top: 8px; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.12em; text-transform: uppercase;"><span style="color: var(--violet)">⚑</span> requires approval</div>
+    </div>
+  </aside>
+
+</main>
+
+<footer class="footer">
+  <span>Genesis Conductor · Kovach Enterprises</span>
+  <span id="footer-ts">—</span>
+  <span><a href="https://ambient.genesisconductor.io/mcp/health" target="_blank">MCP · /mcp</a></span>
+</footer>
+
+<div class="toast" id="toast">—</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────
+const API_BASE = localStorage.getItem("AMBIENT_BASE_URL") || "https://optimization-inversion.genesisconductor.io";
+const API_KEY = localStorage.getItem("AMBIENT_API_KEY") || "";
+const WORKSPACE_ID = localStorage.getItem("AMBIENT_WORKSPACE_ID") || "ws_genesis";
+
+if (!API_KEY) {
+  const k = prompt("AMBIENT_API_KEY (stored in localStorage):");
+  if (k) { localStorage.setItem("AMBIENT_API_KEY", k); location.reload(); }
+}
+
+const HEADERS = { "Authorization": `Bearer ${API_KEY}`, "Content-Type": "application/json" };
+
+// ─── UTIL ───────────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+function toast(msg, kind = "") {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = `toast show ${kind}`;
+  setTimeout(() => t.classList.remove("show"), 3200);
+}
+function fmtAgo(ts) {
+  if (!ts) return "—";
+  const d = (Date.now() - new Date(ts).getTime()) / 1000;
+  if (d < 60) return `${Math.floor(d)}s ago`;
+  if (d < 3600) return `${Math.floor(d / 60)}m ago`;
+  if (d < 86400) return `${Math.floor(d / 3600)}h ago`;
+  return `${Math.floor(d / 86400)}d ago`;
+}
+
+// ─── SEISMIC WAVEFORM ──────────────────────────────────────────
+let wavePhase = 0;
+function renderWave(activity = 0.4) {
+  const W = 600, H = 38, MID = H / 2;
+  const amp = 3 + activity * 9;
+  const pts = [];
+  const softPts = [];
+  for (let x = 0; x <= W; x += 3) {
+    const y1 = MID + Math.sin((x * 0.04) + wavePhase) * amp * Math.sin(x * 0.011 + wavePhase * 0.4);
+    const y2 = MID + Math.sin((x * 0.025) + wavePhase * 0.6) * (amp * 0.55);
+    pts.push(`${x === 0 ? "M" : "L"}${x},${y1.toFixed(2)}`);
+    softPts.push(`${x === 0 ? "M" : "L"}${x},${y2.toFixed(2)}`);
+  }
+  document.getElementById("wave-main").setAttribute("d", pts.join(""));
+  document.getElementById("wave-soft").setAttribute("d", softPts.join(""));
+  wavePhase += 0.035;
+}
+setInterval(() => renderWave(STATE.activity), 60);
+
+// ─── STATE ─────────────────────────────────────────────────────
+const STATE = {
+  jobs: [],
+  approvals: [],
+  ws: { active_jobs: 0, blocked_jobs: 0 },
+  filter: "all",
+  activity: 0.3,
+  mcpHealth: null,
+};
+
+// ─── API ───────────────────────────────────────────────────────
+async function api(path, init = {}) {
+  const t0 = performance.now();
+  const res = await fetch(`${API_BASE}${path}`, { ...init, headers: { ...HEADERS, ...(init.headers || {}) } });
+  const t = performance.now() - t0;
+  $("health-latency").textContent = Math.round(t);
+  if (!res.ok) { const j = await res.json().catch(() => ({})); throw new Error(j.error || res.statusText); }
+  return res.json();
+}
+
+async function pollMcpHealth() {
+  try {
+    const res = await fetch("https://ambient.genesisconductor.io/mcp/health");
+    if (res.ok) {
+      const j = await res.json();
+      STATE.mcpHealth = j;
+      $("health-tools").textContent = j.tools;
+      $("health-text").textContent = "MCP LIVE";
+      $("health-dot").className = "dot";
+    }
+  } catch { /* shim may not be deployed yet */ }
+}
+
+async function pollState() {
+  try {
+    const ws = await api(`/v1/state/${encodeURIComponent(WORKSPACE_ID)}`);
+    STATE.ws = ws;
+    $("ws-id").textContent = ws.workspace_id || WORKSPACE_ID;
+    $("m-active").textContent = ws.active_jobs ?? 0;
+    $("m-blocked").textContent = ws.blocked_jobs ?? 0;
+    $("ap-count").textContent = (ws.open_approvals || []).length;
+    STATE.approvals = ws.open_approvals || [];
+    renderApprovals();
+    STATE.activity = Math.min(1, ((ws.active_jobs || 0) / 8));
+  } catch (e) {
+    $("health-text").textContent = "API ERROR";
+    $("health-dot").className = "dot hot";
+  }
+}
+
+async function pollJobs() {
+  try {
+    const r = await api(`/v1/jobs?workspace_id=${encodeURIComponent(WORKSPACE_ID)}&limit=50`);
+    STATE.jobs = r.items || r || [];
+    const complete24h = STATE.jobs.filter(j => j.status === "complete").length;
+    const failed24h = STATE.jobs.filter(j => j.status === "failed").length;
+    $("m-complete").textContent = complete24h;
+    $("m-failed").textContent = failed24h;
+    renderJobs();
+  } catch { /* handled in pollState */ }
+}
+
+// ─── RENDER ────────────────────────────────────────────────────
+function renderJobs() {
+  const tbody = $("jobs-body");
+  const filtered = STATE.filter === "all" ? STATE.jobs : STATE.jobs.filter(j => j.status === STATE.filter);
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">${STATE.filter === "all" ? "awaiting dispatch telemetry" : "no jobs match filter"}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(j => `
+    <tr>
+      <td class="title">${escape(j.title || "(untitled)")}<span class="desc">${escape(j.task_id || j.job_id)} · ${escape(j.description || "")}</span></td>
+      <td><span class="agent">${escape(j.agent || "—")}</span></td>
+      <td><span class="pill ${j.status}">${j.status}</span></td>
+      <td>
+        <div class="prog"><span style="width: ${j.progress || 0}%"></span></div>
+        <div class="prog-text">${j.progress ?? 0}% · ${escape(j.stage || "—")}</div>
+      </td>
+      <td class="mono">${fmtAgo(j.updated_at)}</td>
+    </tr>
+  `).join("");
+}
+
+function renderApprovals() {
+  const body = $("approvals-body");
+  if (!STATE.approvals.length) {
+    body.innerHTML = `<div class="empty">no pending approvals</div>`;
+    return;
+  }
+  body.innerHTML = STATE.approvals.map(a => `
+    <div class="approval">
+      <div class="approval-meta">${escape(a.approval_id)} · ${fmtAgo(a.requested_at)}</div>
+      <div class="approval-title">${escape(a.title || a.task_id)}</div>
+      <div class="approval-actions">
+        <button class="btn approve" data-act="approve" data-id="${escape(a.approval_id)}">Approve</button>
+        <button class="btn reject" data-act="reject" data-id="${escape(a.approval_id)}">Reject</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function escape(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// ─── EVENTS ────────────────────────────────────────────────────
+document.querySelectorAll(".filter").forEach(el => {
+  el.addEventListener("click", () => {
+    document.querySelectorAll(".filter").forEach(f => f.classList.remove("active"));
+    el.classList.add("active");
+    STATE.filter = el.dataset.filter;
+    renderJobs();
+  });
+});
+
+document.getElementById("approvals-body").addEventListener("click", async e => {
+  const btn = e.target.closest("button.btn");
+  if (!btn) return;
+  const { act, id } = btn.dataset;
+  btn.disabled = true; btn.textContent = "…";
+  try {
+    await api(`/v1/approvals/${encodeURIComponent(id)}/${act}`, { method: "POST", body: "{}" });
+    toast(`${act}d ${id}`, act === "approve" ? "cool" : "hot");
+    await pollState(); await pollJobs();
+  } catch (err) {
+    toast(`${act} failed: ${err.message}`, "hot");
+  }
+});
+
+$("submit-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const body = {
+    source_surface: "operator-console",
+    request_type: $("sf-type").value,
+    title: $("sf-title").value,
+    description: $("sf-desc").value || $("sf-title").value,
+    priority: $("sf-priority").value,
+    requested_by: "console",
+    policy_tier: "standard",
+    requires_approval: false,
+  };
+  try {
+    const r = await api("/v1/tasks", { method: "POST", body: JSON.stringify(body) });
+    toast(`queued ${r.task_id}`, "cool");
+    $("sf-title").value = ""; $("sf-desc").value = "";
+    await pollState(); await pollJobs();
+  } catch (err) {
+    toast(`submit failed: ${err.message}`, "hot");
+  }
+});
+
+// ─── LOOPS ─────────────────────────────────────────────────────
+function tick() {
+  $("footer-ts").textContent = new Date().toISOString().replace("T", " · ").slice(0, 22) + " UTC";
+}
+setInterval(tick, 1000); tick();
+setInterval(() => { pollState(); pollJobs(); }, 5000);
+
+pollMcpHealth();
+pollState();
+pollJobs();
+renderWave(0.3);
+</script>
+
+</body>
+</html>

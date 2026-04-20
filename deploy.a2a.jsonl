@@ -1,0 +1,10 @@
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-backend-patches","step":"1","op":"shell","desc":"Apply atomic batch fix to approvals handler","gate":"HITL:publish"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-backend-patches","step":"2","op":"shell","desc":"Replace UUID.slice(0,8) with full UUID in capsule_events.event_id","depends_on":"step-1"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-backend-patches","step":"3","op":"shell","desc":"Extend OpenAPI spec to cover jobs and approvals endpoints","depends_on":"step-2"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-backend-patches","step":"4","op":"shell","desc":"Extend CLI with priority, policy-tier, approval flags and approve/reject/list subcommands","depends_on":"step-3"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-backend-deploy","step":"5","op":"shell","desc":"Deploy patched Ambient backend to production Cloudflare Worker","depends_on":"step-4","gate":"HITL:publish"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-path-a-npm","step":"6","op":"shell","desc":"Build and publish @kovach-enterprises/ambient-mcp-server to npm","depends_on":"step-5","gate":"HITL:publish"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-path-b-worker","step":"7","op":"shell","desc":"Deploy ambient-mcp-worker to ambient.genesisconductor.io/mcp","depends_on":"step-6","gate":"HITL:publish"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-dashboard","step":"8","op":"shell","desc":"Deploy operator console to console.genesisconductor.io","depends_on":"step-7","gate":"HITL:publish"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-verification","step":"9","op":"shell","desc":"End-to-end invariance check across Path A, Path B, and backend","depends_on":"step-8"}
+{"a2a":"0.3","fleet":"ambient-deploy","lane":"L-publication","step":"10","op":"shell","desc":"Publish llms.txt to all public surfaces for single-prompt model integration","depends_on":"step-9"}

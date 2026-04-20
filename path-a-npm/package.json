@@ -1,0 +1,54 @@
+{
+  "name": "@kovach-enterprises/ambient-mcp-server",
+  "version": "1.0.0",
+  "description": "Genesis Conductor Ambient Agent Access Layer — stdio MCP server. Submits async tasks to kiro/codex/claude/gemini/copilot agents.",
+  "main": "dist/index.js",
+  "bin": {
+    "ambient-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "llms.txt",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "genesis-conductor",
+    "ambient-agent",
+    "async-agent",
+    "kiro",
+    "codex"
+  ],
+  "author": "Igor Holt <holt.igor@gmail.com> (Kovach Enterprises)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Kovach-Enterprises/ambient-mcp-server.git"
+  },
+  "homepage": "https://genesisconductor.io",
+  "bugs": {
+    "url": "https://github.com/Kovach-Enterprises/ambient-mcp-server/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

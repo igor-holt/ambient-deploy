@@ -1,0 +1,22 @@
+name = "ambient-mcp-worker"
+main = "src/index.ts"
+compatibility_date = "2026-04-19"
+compatibility_flags = ["nodejs_compat"]
+account_id = "04c59c95ce8d0a0be98099b7f7e39d18"
+
+[[routes]]
+pattern = "ambient.genesisconductor.io/mcp*"
+zone_name = "genesisconductor.io"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   AMBIENT_API_KEY          — upstream bearer token for optimization-inversion.genesisconductor.io
+#   MCP_SHARED_SECRET        — optional: validate incoming Authorization header (per-caller)
+#
+# Vars:
+[vars]
+AMBIENT_BASE_URL = "https://optimization-inversion.genesisconductor.io"
+SERVER_NAME = "ambient"
+SERVER_VERSION = "1.0.0"
+
+[observability]
+enabled = true

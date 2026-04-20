@@ -1,0 +1,21 @@
+{
+  "name": "ambient-mcp-worker",
+  "version": "1.0.0",
+  "description": "Streamable HTTP MCP shim for Genesis Conductor Ambient Agent Access Layer. Deploys to ambient.genesisconductor.io/mcp.",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "typescript": "^5.4.0",
+    "wrangler": "^3.80.0"
+  }
+}

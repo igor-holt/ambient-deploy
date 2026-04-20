@@ -1,0 +1,52 @@
+# llms.txt — Genesis Conductor Ambient Agent Access Layer
+# v1.0 | Stdio MCP via npm: @kovach-enterprises/ambient-mcp-server
+# Paste into any model's system context for single-prompt integration.
+
+## Install
+npx -y @kovach-enterprises/ambient-mcp-server
+
+## Required env
+AMBIENT_API_KEY=<bearer_token>
+AMBIENT_BASE_URL=https://optimization-inversion.genesisconductor.io  (optional)
+
+## Tools exposed
+- ambient_submit_task      → POST /v1/tasks
+- ambient_get_job_status   → GET  /v1/jobs/{job_id}
+- ambient_get_workspace_state → GET /v1/state/{workspace_id}
+- ambient_list_jobs        → GET  /v1/jobs?...
+- ambient_approve_task     → POST /v1/approvals/{id}/approve
+- ambient_reject_task      → POST /v1/approvals/{id}/reject
+
+## Routing table (NL → request_type)
+| Signal                                                  | request_type                | agent    | approval | tier            |
+|---------------------------------------------------------|----------------------------|----------|----------|-----------------|
+| "implement from spec", "spec-driven"                    | implement_feature_from_spec | kiro    | false    | standard        |
+| "implement", "build", "code"                            | implement_feature           | kiro    | false    | standard        |
+| "security fix", "patch CVE", "remediate"                | security_fix                | codex   | true     | prod_sensitive  |
+| "architecture review", "design review"                  | deep_architecture_review    | claude  | false    | standard        |
+| "GCP", "cloud run", "firestore"                         | gcp_ops                     | gemini  | true     | prod_sensitive  |
+| "inline fix", "copilot this"                            | inline_suggestion           | copilot | false    | standard        |
+| "deploy", "release", "push to prod"                     | deploy                      | kiro    | true     | prod_sensitive  |
+
+## Priority
+- critical: "urgent", "ASAP", "blocking"
+- high: "high priority", "today"
+- low: "whenever", "no rush"
+- normal: default
+
+## Success (201)
+{ task_id, job_id, workspace_id, status: "pending" }
+Cache task_id → workspace_id for subsequent approval/state calls.
+
+## Errors
+401 → "API key rejected. Verify AMBIENT_API_KEY."
+400 → show validation error from body
+404 → verify BASE_URL
+5xx → retry once, then surface Worker log hint
+net → "Could not reach {BASE_URL}. Worker may be down."
+
+## Invariants
+- description = user verbatim. Never paraphrase.
+- Never fabricate task_id / job_id / workspace_id.
+- If requires_approval=true, always surface approval warning in confirmation.
+- Never omit Authorization header.
